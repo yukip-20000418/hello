@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -15,16 +16,15 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'DEBUG TEST',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'test'),
+      home: const MyHomePage(title: 'DEBUG'),
     );
   }
 }
@@ -40,6 +40,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  Map<String, dynamic> data = {};
   final db = Firestore();
 
   void _incrementCounter() {
@@ -62,15 +63,23 @@ class _MyHomePageState extends State<MyHomePage> {
             const Text(
               '押して:',
             ),
+            const SizedBox(height: 10),
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
+            const SizedBox(height: 10),
             ButtonBar(
+              alignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    db.create(_counter);
+                    data = {
+                      'name': 'yamazaki',
+                      'counter': _counter,
+                      'timestamp': FieldValue.serverTimestamp(),
+                    };
+                    db.create(data);
                   },
                   child: const Text('create'),
                 ),
