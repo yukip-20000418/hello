@@ -8,7 +8,6 @@ Future<void> main() async {
   // WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
-    // options: DefaultFirebaseOptions.web,
   );
   runApp(const MyApp());
 }
@@ -40,13 +39,72 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  Map<String, dynamic> data = {};
-  final db = Firestore();
+  final _db = Firestore();
+  int flg = 0;
+  var listener;
+
+  void _listen() {
+    if (flg == 0) {
+      flg = 1;
+      debugPrint('listener start');
+      listener = _db.stream.listen((event) {
+        for (var change in event.docChanges) {
+          final data = change.doc.data()! as Map<String, dynamic>;
+          if (data['timestamp'] is Timestamp) {
+            final Timestamp t = data['timestamp'];
+            final DateTime d = t.toDate();
+            final dt = d;
+            // final dt = data['timestamp'].toDate();
+            debugPrint('!!! ${change.type}: $dt, ${data['name']}');
+          }
+        }
+      });
+    } else {
+      debugPrint('listener cancel a: $listener');
+      listener.cancel();
+      flg = 0;
+      debugPrint('listener cancel b: $listener');
+    }
+  }
 
   void _incrementCounter() {
     setState(() {
       _counter++;
     });
+    debugPrint('count:$_counter, a:${_db.a}');
+    _db.a++;
+  }
+
+  void _create() {
+    _db.create({
+      'name': 'habu',
+      'counter': _counter,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  void _read() {
+    _db.read();
+  }
+
+  Widget list() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _db.stream,
+      builder: (context, snapshot) {
+        return ListView(
+          children: snapshot.data!.docs.map((DocumentSnapshot document) {
+            final data = document.data()! as Map<String, dynamic>;
+            if (data['timestamp'] is Timestamp) {
+              final dt = data['timestamp'].toDate();
+              return Text('$dt : ${data['name']} : ${data['counter']}');
+            } else {
+              return Text(data.toString());
+            }
+            // return Text('$dt : ${data['name']} : ${data['counter']}');
+          }).toList(),
+        );
+      },
+    );
   }
 
   @override
@@ -60,10 +118,6 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              '押して:',
-            ),
-            const SizedBox(height: 10),
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
@@ -73,32 +127,29 @@ class _MyHomePageState extends State<MyHomePage> {
               alignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: () {
-                    data = {
-                      'name': 'yamazaki',
-                      'counter': _counter,
-                      'timestamp': FieldValue.serverTimestamp(),
-                    };
-                    db.create(data);
-                  },
+                  onPressed: _create,
                   child: const Text('create'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    db.read();
-                  },
+                  onPressed: _read,
                   child: const Text('read'),
                 ),
+                ElevatedButton(
+                  onPressed: _listen,
+                  child: const Text('listen'),
+                ),
               ],
+            ),
+            Expanded(
+              child: list(),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
-        tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
