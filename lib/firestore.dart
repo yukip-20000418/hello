@@ -1,41 +1,50 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class Firestore {
-  // final _users = FirebaseFirestore.instance.collection('users');
   late CollectionReference<Map<String, dynamic>> _users;
   late Stream<QuerySnapshot> stream;
-  var a = 100;
+  late StreamSubscription listener;
 
   Firestore() {
-    _users = FirebaseFirestore.instance.collection('users');
-    stream = _users.orderBy('timestamp', descending: false).snapshots();
+    _users = FirebaseFirestore.instance.collection('users2');
+    stream = _users.orderBy('localtime', descending: true).snapshots();
   }
 
   Future<void> create(Map<String, dynamic> data) async {
-    data['counter'] += a;
-    await _users.add(data);
-    debugPrint('add : $data, a:$a');
+    final ref = await _users.add(data);
+    debugPrint('create:$data, id:${ref.id}');
   }
 
   Future<void> read() async {
-    final ss = await _users
-        .orderBy(
-          'timestamp',
-          descending: false,
-        )
-        .get();
-
+    final ss = await _users.orderBy('timestamp', descending: true).get();
     for (var doc in ss.docs) {
       debugPrint('${doc.id} -> ${doc.data()}');
     }
   }
 
-  // Future<void> update() async {
-  //   await _users.doc('x').set({
-  //     'name': 'takemoto',
-  //     'age': 24,
-  //     'year': 1999,
-  //   }, SetOptions(merge: true));
-  // }
+  Future<void> delete(String id) async {
+    await _users.doc(id).delete();
+    debugPrint('delete:$id');
+  }
+
+  Future<void> update(String id, Map<String, dynamic> data) async {
+    await _users.doc(id).set(
+          data,
+          SetOptions(merge: true),
+        );
+    debugPrint('update:$id');
+  }
+
+  void listernerOn(Function f) {
+    listener = stream.listen((event) => f(event));
+    debugPrint('listener On');
+  }
+
+  void listernerOff() {
+    listener.cancel();
+    debugPrint('listener off');
+  }
 }
