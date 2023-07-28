@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import './firebase_options.dart';
+import './firestore.dart';
 
 Future<void> main() async {
   // WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +19,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'OPEN-TEST',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      // home: const MyHomePage(title: 'firestore'),
+      title: 'OPEN-TEST',
       home: const MyHomePage(),
     );
   }
@@ -31,19 +31,13 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
-  // const MyHomePage({super.key, required this.title});
-
-  // final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // final _db = Firestore();
   late Firestore _db;
-  // int flg = 0;
-  // dynamic listener;
   late TextEditingController _counterCtl;
   late TextEditingController _nameCtl;
 
@@ -53,8 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _counterCtl = TextEditingController(text: '6');
     _nameCtl = TextEditingController(text: 'taro');
     _db = Firestore();
-    _db.listernerOn(_change);
-    // listener = _db.stream.listen((event) => _change(event));
+    _db.listernerOn();
   }
 
   @override
@@ -64,31 +57,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _db.listernerOff();
     super.dispose();
   }
-
-  void _change(QuerySnapshot event) {
-    for (var change in event.docChanges) {
-      final data = change.doc.data()! as Map<String, dynamic>;
-      final dt1 = data['timestamp'] is Timestamp
-          ? (data['timestamp'] as Timestamp).toDate()
-          : DateTime(2100);
-      final dt2 = (data['localtime'] as Timestamp).toDate();
-      debugPrint(
-          '[${change.type}] $dt1, $dt2 : ${data['name']} : ${data['counter']}');
-    }
-  }
-
-  // void _listen() {
-  //   debugPrint('$listener');
-  //   if (flg == 0) {
-  //     flg = 1;
-  //     debugPrint('listener start');
-  //     listener = _db.stream.listen((event) => _change(event));
-  //   } else {
-  //     flg = 0;
-  //     debugPrint('listener cancel');
-  //     listener.cancel();
-  //   }
-  // }
 
   void _incrementCounter() {
     setState(() {
@@ -101,7 +69,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _db.create({
       'name': _nameCtl.text,
       'counter': _counterCtl.text,
-      'timestamp': FieldValue.serverTimestamp(),
       'localtime': DateTime.now(),
     });
   }
@@ -109,7 +76,6 @@ class _MyHomePageState extends State<MyHomePage> {
   void _update(id) {
     _db.update(id, {
       'counter': _counterCtl.text,
-      'localtime': DateTime.now(),
     });
   }
 
@@ -117,16 +83,10 @@ class _MyHomePageState extends State<MyHomePage> {
     _db.delete(id);
   }
 
-  // void _read() {
-  //   _db.read();
-  // }
-
   Widget doc(DocumentSnapshot document) {
     final data = document.data()! as Map<String, dynamic>;
 
-    final dt1 = data['timestamp'] is Timestamp
-        ? (data['timestamp'] as Timestamp).toDate()
-        : DateTime(2100);
+    final dt1 = data['timestamp'] is Timestamp ? (data['timestamp'] as Timestamp).toDate() : DateTime(2100);
     final dt2 = (data['localtime'] as Timestamp).toDate();
 
     var record = Column(
@@ -140,7 +100,8 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
         Container(
-          color: const Color.fromRGBO(128, 0, 0, 0.1),
+          width: double.infinity,
+          color: const Color.fromRGBO(128, 128, 200, 0.1),
           child: Text('${document.id} : ${data.toString()}'),
         ),
       ],
@@ -150,19 +111,13 @@ class _MyHomePageState extends State<MyHomePage> {
       children: [
         const SizedBox(height: 1),
         Container(
-          color: const Color.fromRGBO(128, 0, 0, 0.1),
+          color: const Color.fromRGBO(100, 100, 200, 0.1),
           child: Row(
             children: [
               Expanded(child: record),
               const SizedBox(width: 1),
-              IconButton(
-                onPressed: () => _update(document.id),
-                icon: const Icon(Icons.update),
-              ),
-              IconButton(
-                onPressed: () => _delete(document.id),
-                icon: const Icon(Icons.delete),
-              ),
+              IconButton(onPressed: () => _update(document.id), icon: const Icon(Icons.update)),
+              IconButton(onPressed: () => _delete(document.id), icon: const Icon(Icons.delete)),
             ],
           ),
         ),
@@ -174,6 +129,14 @@ class _MyHomePageState extends State<MyHomePage> {
     return StreamBuilder<QuerySnapshot>(
       stream: _db.stream,
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          debugPrint('wait!!!!');
+          return const Center(child: Text('wait!!!'));
+        }
+        if (snapshot.hasError) {
+          debugPrint('error: ${snapshot.error}');
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
         return ListView(
           padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
           children: snapshot.data!.docs.map((DocumentSnapshot document) {
@@ -184,47 +147,63 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  // Widget buttonBar() {
-  //   return ButtonBar(
-  //     alignment: MainAxisAlignment.center,
-  //     children: [
-  //       ElevatedButton(onPressed: _create, child: const Text('create')),
-  //       ElevatedButton(onPressed: _read, child: const Text('read')),
-  //       ElevatedButton(onPressed: _listen, child: const Text('listen')),
-  //     ],
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
+    var wrapA = Wrap(
+      alignment: WrapAlignment.start,
+      runAlignment: WrapAlignment.spaceEvenly,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10.0,
+      runSpacing: 10.0,
+      children: [
+        SizedBox(
+          width: 300,
+          child: TextField(
+            decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'name', prefixIcon: Icon(Icons.face)),
+            controller: _nameCtl,
+          ),
+        ),
+        SizedBox(
+          width: 200,
+          child: TextField(
+            decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'counter', prefixIcon: Icon(Icons.pin)),
+            controller: _counterCtl,
+          ),
+        ),
+      ],
+    );
+
+    var wrapB = Wrap(
+      alignment: WrapAlignment.spaceEvenly,
+      runAlignment: WrapAlignment.spaceEvenly,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10.0,
+      runSpacing: 10.0,
+      children: [
+        ElevatedButton.icon(onPressed: _create, icon: const Icon(Icons.create_outlined), label: const Text('create')),
+        ElevatedButton.icon(onPressed: _db.listernerOff, icon: const Icon(Icons.notifications_off_outlined), label: const Text('test-listener-off')),
+      ],
+    );
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('FIRESTORE ACCESS'),
-        // title: Text(widget.title),
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                NameField(nameCtl: _nameCtl),
-                const SizedBox(width: 20),
-                CounterField(counterCtl: _counterCtl),
-                const SizedBox(width: 20),
-                ElevatedButton.icon(
-                  onPressed: _create,
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('create'),
-                ),
-              ],
+            const SizedBox(height: 20),
+            Wrap(
+              alignment: WrapAlignment.spaceEvenly,
+              runAlignment: WrapAlignment.spaceEvenly,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 20.0,
+              runSpacing: 20.0,
+              children: [wrapA, wrapB],
             ),
             const SizedBox(height: 20),
-            // buttonBar(),
-            // const SizedBox(height: 10),
             Expanded(child: list()),
             const SizedBox(height: 10),
           ],
@@ -233,54 +212,6 @@ class _MyHomePageState extends State<MyHomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
         child: const Icon(Icons.add),
-      ),
-    );
-  }
-}
-
-class NameField extends StatelessWidget {
-  const NameField({
-    super.key,
-    required TextEditingController nameCtl,
-  }) : _nameCtl = nameCtl;
-
-  final TextEditingController _nameCtl;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 300,
-      child: TextField(
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          labelText: 'name',
-          prefixIcon: Icon(Icons.face),
-        ),
-        controller: _nameCtl,
-      ),
-    );
-  }
-}
-
-class CounterField extends StatelessWidget {
-  const CounterField({
-    super.key,
-    required TextEditingController counterCtl,
-  }) : _counterCtl = counterCtl;
-
-  final TextEditingController _counterCtl;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 200,
-      child: TextField(
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          labelText: 'counter',
-          prefixIcon: Icon(Icons.pin),
-        ),
-        controller: _counterCtl,
       ),
     );
   }
