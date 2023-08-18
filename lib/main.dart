@@ -6,7 +6,7 @@ import './firebase_options.dart';
 import './firestore.dart';
 
 Future<void> main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -44,8 +44,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _counterCtl = TextEditingController(text: '6');
-    _nameCtl = TextEditingController(text: 'taro');
+    _counterCtl = TextEditingController(text: '100');
+    _nameCtl = TextEditingController(text: 'no-name');
     _db = Firestore();
     _db.listernerOn();
   }
