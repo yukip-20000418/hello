@@ -53,8 +53,8 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBA5kf4BDlPEmNEeO-1rTpXDAVbVynCaV4',
-    appId: '1:942603743407:web:2240ed6b0fbea75f71245a',
+    apiKey: 'AIzaSyAGXyHmr0x8hUNVYRjcO4_C_6TlBm2Qcyc',
+    appId: '1:942603743407:web:39381888016f407771245a',
     messagingSenderId: '942603743407',
     projectId: 'dev-chottodake-open-test',
     authDomain: 'dev-chottodake-open-test.firebaseapp.com',
